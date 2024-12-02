@@ -13,54 +13,17 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  void _showDialog(BuildContext context, String title, String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(title),
-          content: Text(message),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text("닫기"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<void> _signInWithEmailAndPassword() async {
-    String email = _emailController.text.trim();
-    String password = _passwordController.text.trim();
-
-    if (email.isEmpty) {
-      _showDialog(context, "오류!", "이메일을 입력하시오.");
-      return;
-    }
-    if (password.isEmpty) {
-      _showDialog(context, "오류!", "비밀번호를 입력하시오.");
-      return;
-    }
-
     try {
       await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
       );
-      _showDialog(
-        context,
-        "성공",
-        "로그인에 성공했습니다!",
-      );
-      Future.delayed(const Duration(seconds: 1), () {
-        Navigator.pushReplacementNamed(context, '/home');
-      });
+      Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
-      _showDialog(context, "로그인 실패", "이메일과 비밀번호를 확인하세요");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('로그인 실패: ${e.toString()}')),
+      );
     }
   }
 
@@ -68,62 +31,33 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("로그인"),
+        title: const Text('로그인'),
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                "로그인하기",
-                style: TextStyle(fontSize: 30.0),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(
+                labelText: '이메일',
               ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("이메일", style: TextStyle(fontSize: 20)),
-                  const SizedBox(width: 38),
-                  SizedBox(
-                    width: 300,
-                    child: TextField(
-                      controller: _emailController,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: "이메일 입력",
-                      ),
-                    ),
-                  ),
-                ],
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _passwordController,
+              decoration: const InputDecoration(
+                labelText: '비밀번호',
               ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("비밀번호", style: TextStyle(fontSize: 20)),
-                  const SizedBox(width: 20),
-                  SizedBox(
-                    width: 300,
-                    child: TextField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: "비밀번호 입력",
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: _signInWithEmailAndPassword,
-                child: const Text("로그인"),
-              ),
-            ],
-          ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              onPressed: _signInWithEmailAndPassword,
+              child: const Text('로그인'),
+            ),
+          ],
         ),
       ),
     );
