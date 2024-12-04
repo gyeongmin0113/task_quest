@@ -31,7 +31,8 @@ class _StorePageState extends State<StorePage> {
     if (userDoc.exists) {
       setState(() {
         points = userDoc['points'] ?? 0;
-        profileImageUrl = userDoc['profileImageUrl'] ?? profileImageUrl;
+        if(profileImageUrl != null && profileImageUrl.isNotEmpty)
+          profileImageUrl = userDoc['profileImageUrl'] ?? profileImageUrl;
         purchasedItems = List<String>.from(userDoc['purchased_items'] ?? []);
       });
     }
@@ -90,7 +91,7 @@ class _StorePageState extends State<StorePage> {
           bottom: const TabBar(
             tabs: [
               Tab(text: '배경테마'),
-              Tab(text: '스티커'),
+              Tab(text: '일러스트 프로필'),
             ],
           ),
         ),
@@ -116,7 +117,7 @@ class _StorePageState extends State<StorePage> {
               child: TabBarView(
                 children: [
                   _buildThemeTab(),
-                  _buildStickerTab(),
+                  _buildIllustTab(),
                 ],
               ),
             ),
@@ -158,7 +159,7 @@ class _StorePageState extends State<StorePage> {
     );
   }
 
-  Widget _buildStickerTab() {
+  Widget _buildIllustTab() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('store_items')
@@ -170,7 +171,7 @@ class _StorePageState extends State<StorePage> {
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text("상점에 스티커 아이템이 없습니다."));
+          return const Center(child: Text("상점에 일러스트 프로필 아이템이 없습니다."));
         }
 
         final items = snapshot.data!.docs;
@@ -182,15 +183,17 @@ class _StorePageState extends State<StorePage> {
             final item = items[index];
             final itemName = item['name'];
             final itemPrice = item['price'];
+            final imageUrl = item['imageUrl'];
 
-            return _buildItemTile(itemName, itemPrice, item.id, 'illust'); // 스티커에서 일러스트로 변경됨
+            return _buildItemTile(itemName, itemPrice, item.id, 'illust',  imageUrl: imageUrl);
           },
         );
       },
     );
   }
 
-  Widget _buildItemTile(String itemName, int price, String itemId, String type) {
+  Widget _buildItemTile(String itemName, int price, String itemId,String type, {String? imageUrl}  ) {
+
     // 구매 여부 확인
     final isPurchased = purchasedItems.contains(itemId);
 
@@ -199,7 +202,22 @@ class _StorePageState extends State<StorePage> {
       children: [
         Row(
           children: [
-            Icon(Icons.widgets, size: 40, color: Colors.blueAccent),
+            // 이미지 또는 기본 아이콘 표시
+            imageUrl != null && imageUrl.isNotEmpty
+                ? ClipRRect(
+              borderRadius: BorderRadius.circular(8.0), // 이미지 모서리 둥글게 처리
+              child: Image.network(
+                imageUrl,
+                width: 40,
+                height: 40,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(
+                      Icons.image_not_supported, size: 40, color: Colors.grey);
+                },
+              ),
+            )
+                : const Icon(Icons.widgets, size: 40, color: Colors.blueAccent),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,9 +236,33 @@ class _StorePageState extends State<StorePage> {
            if (type == 'theme') {
              Provider.of<ThemeProvider>(context, listen: false).setTheme(itemId);
              ScaffoldMessenger.of(context).showSnackBar(
-               const SnackBar(content: Text('테마가 적용되었습니다!')),
+               const SnackBar(content: Text('프로필이 적용되었습니다!')),
              );
            }
+           else if (type == 'illust') {
+             try {
+               final user = FirebaseAuth.instance.currentUser;
+               if (user == null) return;
+
+               // Firestore에서 사용자 프로필 이미지 업데이트
+               final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
+               await userDoc.update({'profileImageUrl': imageUrl});
+
+               setState(() {
+                 // UI 상태 갱신
+                 profileImageUrl = imageUrl!;
+               });
+
+               ScaffoldMessenger.of(context).showSnackBar(
+                 const SnackBar(content: Text('프로필 이미지가 적용되었습니다!')),
+               );
+             } catch (e) {
+               ScaffoldMessenger.of(context).showSnackBar(
+                 SnackBar(content: Text('프로필 이미지 적용 실패: $e')),
+               );
+             }
+           }
+
          } else {
       // 구매 확인 다이얼로그
       final result = await showDialog(

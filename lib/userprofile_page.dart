@@ -1,3 +1,5 @@
+
+
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -30,10 +32,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
     if (user == null) return;
 
     final userDoc =
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
     setState(() {
-      // final rawUrl = userDoc['profileImageUrl'] ?? '';
-      // _profileImageUrl = rawUrl.isNotEmpty ? '$rawUrl&alt=media' : '';
+// final rawUrl = userDoc['profileImageUrl'] ?? '';
+// _profileImageUrl = rawUrl.isNotEmpty ? '$rawUrl&alt=media' : '';
       _profileImageUrl = userDoc['profileImageUrl'] ?? '';
     });
   }
@@ -60,7 +62,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
       }
 
       final rawUrl = await storageRef.getDownloadURL();
-      // final imageUrl = '$rawUrl&alt=media';
+// final imageUrl = '$rawUrl&alt=media';
 
       await FirebaseFirestore.instance
           .collection('users')
@@ -136,7 +138,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // 프로필 사진
+// 프로필 사진
                   if (_profileImageUrl != null &&
                       _profileImageUrl!.isNotEmpty)
                     CircleAvatar(
@@ -149,7 +151,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       child: Icon(Icons.person, size: 50),
                     ),
                   const SizedBox(height: 16),
-                  // 프로필 사진 변경 버튼
+// 프로필 사진 변경 버튼
                   TextButton(
                     onPressed: _updateProfileImage,
                     child: const Text(
@@ -158,7 +160,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  // 현재 포인트
+// 현재 포인트
                   Text(
                     '💰 총 포인트: ${stats['points']}',
                     style: const TextStyle(
@@ -168,16 +170,20 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // 이메일
+// 이메일
                   Text(
                     '이메일: ${user.email}',
                     style: const TextStyle(fontSize: 18),
                   ),
                   const SizedBox(height: 32),
-                  // 포인트 상점 버튼
+// 포인트 상점 버튼
                   ElevatedButton(
-                    onPressed: () =>
-                        Navigator.pushNamed(context, '/store'),
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/store').then((_) {
+                        // 돌아왔을 때 프로필 데이터를 다시 로드
+                        _loadUserProfile();
+                      });
+                    },
                     child: const Text('포인트 상점', style: TextStyle(fontSize: 20)),
                     style: ElevatedButton.styleFrom(
                       minimumSize: Size(200, 50),
