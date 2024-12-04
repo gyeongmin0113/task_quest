@@ -14,7 +14,8 @@ class StorePage extends StatefulWidget {
 
 class _StorePageState extends State<StorePage> {
   int points = 0; // 보유 포인트 (Firebase에서 불러올 것)
-  String profileImageUrl = "https://picsum.photos/288/364"; // Firebase에서 가져올 이미지
+  String profileImageUrl = "https://firebasestorage.googleapis.com/v0/b/taskquest-e1b8b.firebasestorage.app/o/profile_images%2Fdefault.png?alt=media&token=1800c892-73f0-459b-b81a-f4fde82262c1"; // Firebase에서 가져올 이미지
+  //프로필 사진의 기본,
 
   @override
   void initState() {
@@ -26,11 +27,14 @@ class _StorePageState extends State<StorePage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(
+        user.uid).get();
     if (userDoc.exists) {
       setState(() {
         points = userDoc['points'] ?? 0;
-        profileImageUrl = userDoc['profileImageUrl'] ?? profileImageUrl;
+        if(profileImageUrl != null && profileImageUrl.isNotEmpty){
+          profileImageUrl = userDoc['profileImageUrl'] ?? profileImageUrl;
+        }
       });
     }
   }
@@ -39,7 +43,8 @@ class _StorePageState extends State<StorePage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final userDoc = FirebaseFirestore.instance.collection('users').doc(
+        user.uid);
 
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final snapshot = await transaction.get(userDoc);
@@ -84,7 +89,7 @@ class _StorePageState extends State<StorePage> {
           bottom: const TabBar(
             tabs: [
               Tab(text: '배경테마'),
-              Tab(text: '스티커'),
+              Tab(text: '일러스트 프로필'),
             ],
           ),
         ),
@@ -101,7 +106,8 @@ class _StorePageState extends State<StorePage> {
                   ),
                   Text(
                     '💰 $points',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -110,7 +116,7 @@ class _StorePageState extends State<StorePage> {
               child: TabBarView(
                 children: [
                   _buildThemeTab(),
-                  _buildStickerTab(),
+                  _buildIllustTab(),
                 ],
               ),
             ),
@@ -142,21 +148,24 @@ class _StorePageState extends State<StorePage> {
           itemCount: items.length,
           itemBuilder: (context, index) {
             final item = items[index];
-            final itemName = item['name'];
-            final itemPrice = item['price'];
+            final itemData = item.data() as Map<String, dynamic>;
+            final itemName = itemData['name'] ?? '이름 없음';
+            final itemPrice = itemData['price'] ?? 0;
+            final imageUrl = itemData.containsKey('imageUrl') ? itemData['imageUrl'] : ''; // 이미지 URL 기본값
 
-            return _buildItemTile(itemName, itemPrice, item.id, 'theme');
+            return _buildItemTile(itemName, itemPrice, imageUrl, item.id, 'theme');
           },
         );
+
       },
     );
   }
 
-  Widget _buildStickerTab() {
+  Widget _buildIllustTab() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('store_items')
-          .where('type', isEqualTo: 'sticker')
+          .where('type', isEqualTo: 'illust')
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -164,7 +173,7 @@ class _StorePageState extends State<StorePage> {
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text("상점에 스티커 아이템이 없습니다."));
+          return const Center(child: Text("상점에 일러스트 프로필 아이템이 없습니다."));
         }
 
         final items = snapshot.data!.docs;
@@ -176,21 +185,39 @@ class _StorePageState extends State<StorePage> {
             final item = items[index];
             final itemName = item['name'];
             final itemPrice = item['price'];
+            final imageUrl = item['imageUrl'];
 
-            return _buildItemTile(itemName, itemPrice, item.id, 'sticker');
+            return _buildItemTile(
+                itemName, itemPrice, imageUrl, item.id, 'illust');
           },
         );
       },
     );
   }
 
-  Widget _buildItemTile(String itemName, int price, String itemId, String type) {
+  Widget _buildItemTile(String itemName, int price, String? imageUrl,
+      String itemId, String type) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
           children: [
-            Icon(Icons.widgets, size: 40, color: Colors.blueAccent),
+            // 이미지 또는 기본 아이콘 표시
+            imageUrl != null && imageUrl.isNotEmpty
+                ? ClipRRect(
+              borderRadius: BorderRadius.circular(8.0), // 이미지 모서리 둥글게 처리
+              child: Image.network(
+                imageUrl,
+                width: 40,
+                height: 40,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(
+                      Icons.image_not_supported, size: 40, color: Colors.grey);
+                },
+              ),
+            )
+                : const Icon(Icons.widgets, size: 40, color: Colors.blueAccent),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,20 +233,21 @@ class _StorePageState extends State<StorePage> {
           onPressed: () async {
             final result = await showDialog(
               context: context,
-              builder: (context) => AlertDialog(
-                title: Text('$itemName 구매'),
-                content: const Text('이 아이템을 구매하시겠습니까?'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('취소'),
+              builder: (context) =>
+                  AlertDialog(
+                    title: Text('$itemName 구매'),
+                    content: const Text('이 아이템을 구매하시겠습니까?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text('취소'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: const Text('구매'),
+                      ),
+                    ],
                   ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text('구매'),
-                  ),
-                ],
-              ),
             );
 
             if (result == true) {
@@ -232,3 +260,4 @@ class _StorePageState extends State<StorePage> {
     );
   }
 }
+
