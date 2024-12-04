@@ -14,7 +14,7 @@ class StorePage extends StatefulWidget {
 
 class _StorePageState extends State<StorePage> {
   int points = 0; // 보유 포인트 (Firebase에서 불러올 것)
-  String profileImageUrl = "https://picsum.photos/288/364"; // Firebase에서 가져올 이미지
+  String profileImageUrl = "https://firebasestorage.googleapis.com/v0/b/taskquest-e1b8b.firebasestorage.app/o/profile_images%2Fdefault.png?alt=media&token=1800c892-73f0-459b-b81a-f4fde82262c1"; // Firebase에서 가져올 이미지
   List<String> purchasedItems = []; // 구매한 아이템 목록
 
   @override

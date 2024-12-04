@@ -107,7 +107,8 @@ class _SignupPageState extends State<SignupPage> {
             'name': name,
             'email': email,
             'password': password,  // 실제 서비스에서는 비밀번호를 해시화해야 합니다.
-            'profileImageUrl': profile_default // 기본 프로필 설정
+            'profileImageUrl': profile_default, // 기본 프로필 설정
+            'points' : 0 // 기본 포인트 필드
           });;print("log: Firestore에 사용자 정보 저장 완료");
 
           // 회원가입 성공 후 /home 화면으로 이동

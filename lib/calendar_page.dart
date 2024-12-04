@@ -95,7 +95,9 @@ class _CalendarPageState extends State<CalendarPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(deleteTask ? '작업이 삭제되었습니다.' : '작업이 완료되었습니다.')),
       );
-    } catch (e) {
+    } catch (e,stackTrace) {
+      print('Firestore 작업 실패: $e');
+      print('Stack trace: $stackTrace'); // 스택 트레이스 추가
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(deleteTask ? '삭제 실패: $e' : '작업 완료 실패: $e')),
       );
