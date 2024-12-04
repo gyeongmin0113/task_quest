@@ -151,8 +151,10 @@ class _StorePageState extends State<StorePage> {
             final item = items[index];
             final itemName = item['name'];
             final itemPrice = item['price'];
+            String colorHex = item['color'];
+            final itemColor = Color(int.parse(colorHex.replaceFirst('#', '0xFF')));
 
-            return _buildItemTile(itemName, itemPrice, item.id, 'theme');
+            return _buildItemTile(itemName, itemPrice, item.id, 'theme', color: itemColor);
           },
         );
       },
@@ -192,7 +194,7 @@ class _StorePageState extends State<StorePage> {
     );
   }
 
-  Widget _buildItemTile(String itemName, int price, String itemId,String type, {String? imageUrl}  ) {
+  Widget _buildItemTile(String itemName, int price, String itemId,String type, {String? imageUrl, Color? color}  ) {
 
     // 구매 여부 확인
     final isPurchased = purchasedItems.contains(itemId);
@@ -203,7 +205,16 @@ class _StorePageState extends State<StorePage> {
         Row(
           children: [
             // 이미지 또는 기본 아이콘 표시
-            imageUrl != null && imageUrl.isNotEmpty
+            if (color != null)
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle, // 원형
+                ),
+              )
+            else imageUrl != null && imageUrl.isNotEmpty
                 ? ClipRRect(
               borderRadius: BorderRadius.circular(8.0), // 이미지 모서리 둥글게 처리
               child: Image.network(

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 String BLUE_theme = 'xWg4naDhQPCpokmpJoJL';
 String DEEP_theme = '4MxYcvwXrbTStXtL9kPn';
+String PINK_theme = 'aixxHvlEmEJXYIVT3Uw3';
+String GREEN_theme = 'hyu0HmZXawutFuToNuTc';
 
 class ThemeProvider extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.light; // 초기 테마 모드
@@ -48,8 +50,33 @@ class ThemeProvider extends ChangeNotifier {
           bodyLarge: TextStyle(color: Colors.black),
         ),
       );
-    }
-    else {
+    }else if (theme == GREEN_theme) {
+      print("그린테마적용");
+      _themeData = ThemeData(
+        brightness: Brightness.light,
+        primaryColor: Colors.green,
+        scaffoldBackgroundColor: Colors.lightGreen[50],
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.green,
+        ),
+        textTheme: TextTheme(
+          bodyLarge: TextStyle(color: Colors.black),
+        ),
+      );
+    } else if (theme == PINK_theme) {
+      print("핑크테마적용");
+      _themeData = ThemeData(
+        brightness: Brightness.light,
+        primaryColor: Colors.pink[300],
+        scaffoldBackgroundColor: Colors.pink[50],
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.pink[300],
+        ),
+        textTheme: TextTheme(
+          bodyLarge: TextStyle(color: Colors.black),
+        ),
+      );
+    } else {
       // 기본 라이트 테마
       _themeData = ThemeData(
         brightness: Brightness.light,
