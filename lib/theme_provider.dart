@@ -1,7 +1,7 @@
-
 import 'package:flutter/material.dart';
 
 String BLUE_theme = 'xWg4naDhQPCpokmpJoJL';
+String DEEP_theme = '4MxYcvwXrbTStXtL9kPn';
 
 class ThemeProvider extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.light; // 초기 테마 모드
@@ -22,8 +22,8 @@ class ThemeProvider extends ChangeNotifier {
 
   void setTheme(String theme) {
 
-    if (theme == 'theme_dark') {
-      // 다크 테마 정의
+    if (theme == DEEP_theme) {
+      // 딥다크 테마 정의
       _themeData = ThemeData(
         brightness: Brightness.dark,
         primaryColor: Colors.deepPurple,

@@ -61,6 +61,10 @@ class _StorePageState extends State<StorePage> {
         'purchased_items': FieldValue.arrayUnion([itemId]),
       });
 
+      // UI 상태 갱신
+      setState(() {
+        purchasedItems.add(itemId); // 구매 항목 추가
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('구매 완료!')),
       );
@@ -158,7 +162,7 @@ class _StorePageState extends State<StorePage> {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('store_items')
-          .where('type', isEqualTo: 'sticker')
+          .where('type', isEqualTo: 'illust') // 스티커에서 일러스트로 변경됨
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -179,7 +183,7 @@ class _StorePageState extends State<StorePage> {
             final itemName = item['name'];
             final itemPrice = item['price'];
 
-            return _buildItemTile(itemName, itemPrice, item.id, 'sticker');
+            return _buildItemTile(itemName, itemPrice, item.id, 'illust'); // 스티커에서 일러스트로 변경됨
           },
         );
       },

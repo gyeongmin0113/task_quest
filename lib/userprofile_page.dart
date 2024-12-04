@@ -30,10 +30,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
     if (user == null) return;
 
     final userDoc =
-    await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
     setState(() {
-      final rawUrl = userDoc['profileImageUrl'] ?? '';
-      _profileImageUrl = rawUrl.isNotEmpty ? '$rawUrl&alt=media' : '';
+      // final rawUrl = userDoc['profileImageUrl'] ?? '';
+      // _profileImageUrl = rawUrl.isNotEmpty ? '$rawUrl&alt=media' : '';
+      _profileImageUrl = userDoc['profileImageUrl'] ?? '';
     });
   }
 
@@ -59,7 +60,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
       }
 
       final rawUrl = await storageRef.getDownloadURL();
-      final imageUrl = '$rawUrl&alt=media';
+      // final imageUrl = '$rawUrl&alt=media';
 
       await FirebaseFirestore.instance
           .collection('users')
@@ -67,7 +68,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
           .update({'profileImageUrl': rawUrl});
 
       setState(() {
-        _profileImageUrl = imageUrl;
+        _profileImageUrl = rawUrl;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
