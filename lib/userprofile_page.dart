@@ -17,7 +17,6 @@ class UserProfilePage extends StatefulWidget {
 
 class _UserProfilePageState extends State<UserProfilePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  String? _nickname;
   String? _profileImageUrl;
 
   @override
@@ -33,9 +32,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     final userDoc =
     await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
     setState(() {
-      _nickname = userDoc['nickname'] ?? '';
       final rawUrl = userDoc['profileImageUrl'] ?? '';
-      // Add alt=media to the image URL
       _profileImageUrl = rawUrl.isNotEmpty ? '$rawUrl&alt=media' : '';
     });
   }
@@ -54,17 +51,15 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
     try {
       if (kIsWeb) {
-        // Flutter Web: Use putData
         final imageData = await pickedImage.readAsBytes();
         await storageRef.putData(imageData);
       } else {
-        // Mobile (iOS/Android): Use putFile
         final file = File(pickedImage.path);
         await storageRef.putFile(file);
       }
 
       final rawUrl = await storageRef.getDownloadURL();
-      final imageUrl = '$rawUrl&alt=media'; // Add alt=media to the URL
+      final imageUrl = '$rawUrl&alt=media';
 
       await FirebaseFirestore.instance
           .collection('users')
@@ -85,24 +80,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
     }
   }
 
-  Future<void> _updateNickname(String newNickname) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .update({'nickname': newNickname});
-
-    setState(() {
-      _nickname = newNickname;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('닉네임이 업데이트되었습니다.')),
-    );
-  }
-
   Future<Map<String, dynamic>> getUserStats() async {
     final user = _auth.currentUser;
     if (user == null) {
@@ -117,8 +94,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
     return {
       'points': userDoc['points'] ?? 0,
-      'completed_tasks': userDoc['completed_tasks'] ?? 0,
-      'total_tasks': userDoc['total_tasks'] ?? 0,
     };
   }
 
@@ -128,7 +103,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('프로필'),
+        title: const Text('내 정보'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -153,54 +128,63 @@ class _UserProfilePageState extends State<UserProfilePage> {
           }
 
           final stats = snapshot.data!;
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (_profileImageUrl != null &&
-                    _profileImageUrl!.isNotEmpty)
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundImage: NetworkImage(_profileImageUrl!),
-                  )
-                else
-                  const CircleAvatar(
-                    radius: 40,
-                    child: Icon(Icons.person),
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // 프로필 사진
+                  if (_profileImageUrl != null &&
+                      _profileImageUrl!.isNotEmpty)
+                    CircleAvatar(
+                      radius: 80,
+                      backgroundImage: NetworkImage(_profileImageUrl!),
+                    )
+                  else
+                    const CircleAvatar(
+                      radius: 80,
+                      child: Icon(Icons.person, size: 50),
+                    ),
+                  const SizedBox(height: 16),
+                  // 프로필 사진 변경 버튼
+                  TextButton(
+                    onPressed: _updateProfileImage,
+                    child: const Text(
+                      '프로필 사진 변경',
+                      style: TextStyle(fontSize: 16),
+                    ),
                   ),
-                TextButton(
-                  onPressed: _updateProfileImage,
-                  child: const Text('프로필 사진 변경'),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  decoration:
-                  const InputDecoration(labelText: '닉네임'),
-                  controller:
-                  TextEditingController(text: _nickname),
-                  onSubmitted: (value) {
-                    if (value.trim().isNotEmpty) {
-                      _updateNickname(value.trim());
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-                Text('이메일: ${user.email}',
-                    style: const TextStyle(fontSize: 18)),
-                const SizedBox(height: 16),
-                Text('총 포인트: ${stats['points']}'),
-                const SizedBox(height: 8),
-                Text('완료된 작업 수: ${stats['completed_tasks']}'),
-                const SizedBox(height: 8),
-                Text('총 작업 수: ${stats['total_tasks']}'),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () =>
-                      Navigator.pushNamed(context, '/store'),
-                  child: const Text('포인트 상점으로 이동'),
-                ),
-              ],
+                  const SizedBox(height: 32),
+                  // 현재 포인트
+                  Text(
+                    '💰 총 포인트: ${stats['points']}',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // 이메일
+                  Text(
+                    '이메일: ${user.email}',
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(height: 32),
+                  // 포인트 상점 버튼
+                  ElevatedButton(
+                    onPressed: () =>
+                        Navigator.pushNamed(context, '/store'),
+                    child: const Text('포인트 상점', style: TextStyle(fontSize: 20)),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size(200, 50),
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -230,8 +214,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
             label: '오늘',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.info),
-            label: '정보',
+            icon: Icon(Icons.person),
+            label: '프로필',
           ),
         ],
       ),
