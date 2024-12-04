@@ -254,7 +254,11 @@ class _CalendarPageState extends State<CalendarPage> {
                 },
               );
             },
-            child: const Text('할 일 추가'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: Size(200, 50),
+              padding: EdgeInsets.zero,
+            ),
+            child: const Text('할 일 추가', style: TextStyle(fontSize: 20)),
           ),
           Expanded(
             child: ListView.builder(
@@ -262,17 +266,21 @@ class _CalendarPageState extends State<CalendarPage> {
               itemBuilder: (context, index) {
                 final task = _tasks[index];
                 return ListTile(
-                  title: Text(task['title']),
+                  title: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.check, color: Colors.green),
+                        onPressed: () => _modifyTask(task['id'], 10, deleteTask: false),
+                      ),
+                      Expanded(child: Text(task['title'])),
+                    ],
+                  ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
                         icon: const Icon(Icons.edit, color: Colors.blue),
                         onPressed: () => _editTask(task['id'], task['title']),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.check, color: Colors.green),
-                        onPressed: () => _modifyTask(task['id'], 10, deleteTask: false),
                       ),
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
@@ -311,8 +319,8 @@ class _CalendarPageState extends State<CalendarPage> {
             label: '오늘',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.info),
-            label: '정보',
+            icon: Icon(Icons.person),
+            label: '프로필',
           ),
         ],
       ),

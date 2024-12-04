@@ -14,6 +14,8 @@ class TodayPage extends StatefulWidget {
 class _TodayPageState extends State<TodayPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   List<Map<String, dynamic>> _tasks = [];
+  int _selectedIndex = 1; // 현재 선택된 버튼 인덱스
+  final TextEditingController _taskController = TextEditingController();
 
   Future<void> _fetchTodayTasks() async {
     final user = _auth.currentUser;
@@ -147,6 +149,38 @@ class _TodayPageState extends State<TodayPage> {
     );
   }
 
+  Future<void> _addNewTask() async {
+    final taskTitle = _taskController.text.trim();
+    if (taskTitle.isEmpty) return;
+
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final today = DateTime.now();
+    try {
+      await FirebaseFirestore.instance
+          .collection('tasks')
+          .doc(user.uid)
+          .collection('user_tasks')
+          .add({
+        'title': taskTitle,
+        'date': Timestamp.fromDate(today),
+        'completed': false,
+      });
+
+      _taskController.clear(); // 입력 필드 비우기
+      await _fetchTodayTasks();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('새로운 일정이 추가되었습니다.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('일정 추가 실패: $e')),
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -158,63 +192,88 @@ class _TodayPageState extends State<TodayPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('오늘의 일정'),
+        backgroundColor: Colors.red,
       ),
-      body: _tasks.isEmpty
-          ? const Center(child: Text('오늘의 일정이 없습니다.'))
-          : ListView.builder(
-        itemCount: _tasks.length,
-        itemBuilder: (context, index) {
-          final task = _tasks[index];
-          return ListTile(
-            title: Text(task['title']),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blue),
-                  onPressed: () => _editTask(task['id'], task['title']),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.check, color: Colors.green),
-                  onPressed: () => _modifyTask(task['id'], 10, deleteTask: false),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _modifyTask(task['id'], -5, deleteTask: true),
-                ),
-              ],
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              itemCount: _tasks.length,
+              itemBuilder: (context, index) {
+                var task = _tasks[index];
+                return ListTile(
+                  title: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.check, color: Colors.green),
+                        onPressed: () => _modifyTask(task['id'], 10),
+                      ),
+                      Expanded(
+                        child: Text(task['title'] ?? '제목 없음'),
+                      ),
+                    ],
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () => _editTask(task['id'], task['title']),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _modifyTask(task['id'], -5, deleteTask: true),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 200.0), // 좌우 여백을 16으로 설정
+            child: TextField(
+              controller: _taskController,
+              decoration: InputDecoration(
+                labelText: '새로운 일정',
+                border: OutlineInputBorder(),
+              ),
+              onSubmitted: (_) => _addNewTask(),
+            ),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _addNewTask,
+            child: const Text('일정 추가하기', style: TextStyle(fontSize: 20)),
+            style: ElevatedButton.styleFrom(
+              minimumSize: Size(200, 50),
+              padding: EdgeInsets.zero,
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1,
+        currentIndex: _selectedIndex,
         onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
           if (index == 0) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const CalendarPage()),
-            );
+            Navigator.push(
+                context, MaterialPageRoute(builder: (context) => CalendarPage()));
+          } else if (index == 1) {
+            Navigator.push(
+                context, MaterialPageRoute(builder: (context) => TodayPage()));
           } else if (index == 2) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const UserProfilePage()),
-            );
+            Navigator.push(
+                context, MaterialPageRoute(builder: (context) => UserProfilePage()));
           }
         },
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: '달력',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.today),
-            label: '오늘',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.info),
-            label: '정보',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: '달력'),
+          BottomNavigationBarItem(icon: Icon(Icons.today), label: '오늘'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: '프로필'),
         ],
       ),
     );
