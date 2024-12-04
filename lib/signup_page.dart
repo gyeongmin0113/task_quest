@@ -36,7 +36,7 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _passwordConfirmController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
-  String _errorMessage = ''; // 에러 메시지를 저장할 변수
+  //String _errorMessage = ''; // 에러 메시지를 저장할 변수
 
   // 회원가입 처리 함수
   Future<void> _createUser() async {
