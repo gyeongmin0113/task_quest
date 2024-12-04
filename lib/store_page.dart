@@ -15,6 +15,7 @@ class StorePage extends StatefulWidget {
 class _StorePageState extends State<StorePage> {
   int points = 0; // 보유 포인트 (Firebase에서 불러올 것)
   String profileImageUrl = "https://picsum.photos/288/364"; // Firebase에서 가져올 이미지
+  List<String> purchasedItems = []; // 구매한 아이템 목록
 
   @override
   void initState() {
@@ -31,6 +32,7 @@ class _StorePageState extends State<StorePage> {
       setState(() {
         points = userDoc['points'] ?? 0;
         profileImageUrl = userDoc['profileImageUrl'] ?? profileImageUrl;
+        purchasedItems = List<String>.from(userDoc['purchased_items'] ?? []);
       });
     }
   }
@@ -185,6 +187,9 @@ class _StorePageState extends State<StorePage> {
   }
 
   Widget _buildItemTile(String itemName, int price, String itemId, String type) {
+    // 구매 여부 확인
+    final isPurchased = purchasedItems.contains(itemId);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -202,31 +207,43 @@ class _StorePageState extends State<StorePage> {
           ],
         ),
         ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+       style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
           onPressed: () async {
-            final result = await showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: Text('$itemName 구매'),
-                content: const Text('이 아이템을 구매하시겠습니까?'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('취소'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text('구매'),
-                  ),
-                ],
-              ),
-            );
+         if (isPurchased) {
+           // 이미 구매한 경우 테마 적용
+           if (type == 'theme') {
+             Provider.of<ThemeProvider>(context, listen: false).setTheme(itemId);
+             ScaffoldMessenger.of(context).showSnackBar(
+               const SnackBar(content: Text('테마가 적용되었습니다!')),
+             );
+           }
+         } else {
+      // 구매 확인 다이얼로그
+      final result = await showDialog(
+        context: context,
+        builder: (context) =>
+            AlertDialog(
+              title: Text('$itemName 구매'),
+              content: const Text('이 아이템을 구매하시겠습니까?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('취소'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('구매'),
+                ),
+              ],
+            ),
+      );
 
-            if (result == true) {
-              await _purchaseItem(itemId, price, type);
-            }
+      if (result == true) {
+        await _purchaseItem(itemId, price, type);
+      }
+    }
           },
-          child: const Text('구매하기'),
+          child: Text(isPurchased ? '적용하기' : '구매하기'),
         ),
       ],
     );
