@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -33,9 +34,9 @@ class TaskQuestApp extends StatelessWidget {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             title: 'Task Quest',
-            theme: ThemeData.light(),
+            theme: Provider.of<ThemeProvider>(context).themeData, // themeData를 제공
             darkTheme: ThemeData.dark(),
-            themeMode: themeProvider.themeMode,
+            themeMode: Provider.of<ThemeProvider>(context).themeMode,
             initialRoute: '/',
             routes: {
               '/': (context) => const InitialPage(),
