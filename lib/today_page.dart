@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+import 'package:uuid/uuid.dart';
+
 import 'calendar_page.dart';
 import 'userprofile_page.dart';
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
 class TodayPage extends StatefulWidget {
   const TodayPage({Key? key}) : super(key: key);
@@ -149,6 +155,80 @@ class _TodayPageState extends State<TodayPage> {
     );
   }
 
+  Future<void> _scheduleNotification(String taskId, String title, DateTime notificationTime) async {
+    try {
+      final now = DateTime.now(); // 현재 시간
+      print("Current local time: $now");
+
+      // 선택한 알림 시간이 이미 지난 경우, 알림이 내일로 설정되게 처리
+      if (notificationTime.isBefore(now)) {
+        print('알림 시간이 이미 지나갔습니다. 내일로 예약합니다.');
+        notificationTime = notificationTime.add(Duration(days: 1));  // 내일로 설정
+      }
+
+      // 알림까지 남은 시간 계산 (현재 시간과 설정된 시간 사이의 차이)
+      final timeUntilNotification = notificationTime.difference(now);
+      print("Time until notification: $timeUntilNotification");
+
+      // 딜레이 후 알림을 즉시 트리거
+      await Future.delayed(timeUntilNotification, () async {
+        print("Time reached, triggering notification...");
+
+        // 알림 설정
+        const androidDetails = AndroidNotificationDetails(
+          'task_channel_id',
+          'Task Notifications',
+          channelDescription: 'Channel for task notifications',
+          importance: Importance.high,
+          priority: Priority.high,
+          showWhen: false,
+          enableLights: true,
+          enableVibration: true,
+        );
+        const notificationDetails = NotificationDetails(android: androidDetails);
+
+        var uuid = Uuid();
+        var notificationId = uuid.v4(); // 유니크한 ID 사용
+
+        // 알림 트리거
+        await flutterLocalNotificationsPlugin.show(
+          notificationId.hashCode,
+          '작업 알림',
+          title,
+          notificationDetails,
+          payload: taskId,
+        );
+
+        print('Notification triggered successfully');
+      });
+
+    } catch (e) {
+      print('Error scheduling notification: $e');
+    }
+  }
+
+
+  // 시간 선택 다이얼로그
+  Future<void> _setReminder(Map<String, dynamic> task) async {
+    final TimeOfDay? selectedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (selectedTime != null) {
+      final now = DateTime.now();
+      final notificationTime = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        selectedTime.hour,
+        selectedTime.minute,
+      );
+
+      await _scheduleNotification(task['id'], task['title'], notificationTime);
+    }
+  }
+
   Future<void> _addNewTask() async {
     final taskTitle = _taskController.text.trim();
     if (taskTitle.isEmpty) return;
@@ -172,12 +252,11 @@ class _TodayPageState extends State<TodayPage> {
       await _fetchTodayTasks();
 
       ScaffoldMessenger.of(context).showSnackBar(
-
-        const SnackBar(content: Text('새로운 할 일이 추가되었습니다.')),
+        const SnackBar(content: Text('새로운 일정이 추가되었습니다.')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('할 일 추가 실패: $e')),
+        SnackBar(content: Text('일정 추가 실패: $e')),
       );
     }
   }
@@ -192,9 +271,7 @@ class _TodayPageState extends State<TodayPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-
         title: const Text('오늘의 할 일'),
-
         backgroundColor: Colors.red,
       ),
       body: Column(
@@ -234,13 +311,11 @@ class _TodayPageState extends State<TodayPage> {
             ),
           ),
           Padding(
-
             padding: const EdgeInsets.symmetric(horizontal: 50.0),
             child: TextField(
               controller: _taskController,
               decoration: InputDecoration(
                 labelText: '새로운 할 일',
-
                 border: OutlineInputBorder(),
               ),
               onSubmitted: (_) => _addNewTask(),
@@ -249,9 +324,7 @@ class _TodayPageState extends State<TodayPage> {
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: _addNewTask,
-
             child: const Text('할 일 추가하기', style: TextStyle(fontSize: 20)),
-
             style: ElevatedButton.styleFrom(
               minimumSize: Size(200, 50),
               padding: EdgeInsets.zero,
