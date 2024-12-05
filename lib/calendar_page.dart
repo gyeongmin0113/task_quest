@@ -2,8 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest.dart' as tzdata;
+import 'package:uuid/uuid.dart';
+
 import 'today_page.dart';
 import 'userprofile_page.dart';
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({Key? key}) : super(key: key);
@@ -19,13 +26,113 @@ class _CalendarPageState extends State<CalendarPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   List<Map<String, dynamic>> _tasks = [];
 
-  // 라벨 선택을 위한 리스트
   final List<Map<String, dynamic>> _labels = [
     {'label': '개인', 'color': Colors.green},
     {'label': '업무', 'color': Colors.blue},
     {'label': '중요', 'color': Colors.red},
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    tzdata.initializeTimeZones();
+    _selectedDay = _focusedDay;
+    _fetchTasksForSelectedDay();
+    _initializeNotifications();
+  }
+
+  // 알림 초기화
+  Future<void> _initializeNotifications() async {
+    const androidInitializationSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const initializationSettings = InitializationSettings(android: androidInitializationSettings);
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  }
+
+  // 알림 예약
+  Future<void> _scheduleNotification(String taskId, String title, DateTime notificationTime) async {
+    try {
+      final now = DateTime.now(); // 현재 시간
+      print("Current local time: $now");
+
+      // 선택한 알림 시간이 이미 지난 경우, 알림이 내일로 설정되게 처리
+      if (notificationTime.isBefore(now)) {
+        print('알림 시간이 이미 지나갔습니다. 내일로 예약합니다.');
+        notificationTime = notificationTime.add(Duration(days: 1));  // 내일로 설정
+      }
+
+      // 알림까지 남은 시간 계산 (현재 시간과 설정된 시간 사이의 차이)
+      final timeUntilNotification = notificationTime.difference(now);
+      print("Time until notification: $timeUntilNotification");
+
+      // 딜레이 후 알림을 즉시 트리거
+      await Future.delayed(timeUntilNotification, () async {
+        print("Time reached, triggering notification...");
+
+        // 알림 설정
+        const androidDetails = AndroidNotificationDetails(
+          'task_channel_id',
+          'Task Notifications',
+          channelDescription: 'Channel for task notifications',
+          importance: Importance.high,
+          priority: Priority.high,
+          showWhen: false,
+          enableLights: true,
+          enableVibration: true,
+        );
+        const notificationDetails = NotificationDetails(android: androidDetails);
+
+        var uuid = Uuid();
+        var notificationId = uuid.v4(); // 유니크한 ID 사용
+
+        // 알림 트리거
+        await flutterLocalNotificationsPlugin.show(
+          notificationId.hashCode,
+          '작업 알림',
+          title,
+          notificationDetails,
+          payload: taskId,
+        );
+
+        print('Notification triggered successfully');
+      });
+
+    } catch (e) {
+      print('Error scheduling notification: $e');
+    }
+  }
+
+
+  // 알림 클릭 시 호출되는 함수
+  Future<void> onSelectNotification(String? payload) async {
+    if (payload != null) {
+      print("Notification clicked with payload: $payload");
+
+      // 알림 클릭 시 원하는 동작을 추가합니다.
+    }
+  }
+
+  // 시간 선택 다이얼로그
+  Future<void> _setReminder(Map<String, dynamic> task) async {
+    final TimeOfDay? selectedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (selectedTime != null) {
+      final now = DateTime.now();
+      final notificationTime = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        selectedTime.hour,
+        selectedTime.minute,
+      );
+
+      await _scheduleNotification(task['id'], task['title'], notificationTime);
+    }
+  }
+
+  // 오늘의 할 일 가져오기
   Future<void> _fetchTasksForSelectedDay() async {
     if (_selectedDay == null) return;
 
@@ -41,7 +148,7 @@ class _CalendarPageState extends State<CalendarPage> {
         .collection('user_tasks')
         .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
         .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-        .where('completed', isEqualTo: false) // 완료되지 않은 할 일만 가져오기
+        .where('completed', isEqualTo: false)
         .get();
 
     setState(() {
@@ -54,61 +161,7 @@ class _CalendarPageState extends State<CalendarPage> {
     });
   }
 
-  Future<void> _updateUserPoints(int pointsChange) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
-
-    await FirebaseFirestore.instance.runTransaction((transaction) async {
-      final snapshot = await transaction.get(userDoc);
-      if (!snapshot.exists) return;
-
-      final currentPoints = snapshot['points'] ?? 0;
-      transaction.update(userDoc, {
-        'points': currentPoints + pointsChange,
-      });
-    });
-  }
-
-  Future<void> _modifyTask(String taskId, int pointsChange, {bool deleteTask = false}) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    try {
-      final userTasks = FirebaseFirestore.instance
-          .collection('tasks')
-          .doc(user.uid)
-          .collection('user_tasks');
-
-      if (deleteTask) {
-        await userTasks.doc(taskId).delete();
-      } else {
-        await userTasks.doc(taskId).update({'completed': true});
-      }
-
-      await _fetchTasksForSelectedDay();
-
-      setState(() {
-        if (deleteTask) {
-          _tasks.removeWhere((task) => task['id'] == taskId);
-        } else {
-          _tasks = _tasks.where((task) => task['id'] != taskId).toList();
-        }
-      });
-
-      await _updateUserPoints(pointsChange);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(deleteTask ? '할 일이 삭제되었습니다.' : '할 일이 완료되었습니다.')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(deleteTask ? '삭제 실패: $e' : '할 일 완료 실패: $e')),
-      );
-    }
-  }
-
+  // 할 일 추가
   Future<void> _addTask(String title, String label) async {
     if (_selectedDay == null) return;
 
@@ -120,7 +173,7 @@ class _CalendarPageState extends State<CalendarPage> {
       'date': Timestamp.fromDate(_selectedDay!),
       'created_at': Timestamp.now(),
       'completed': false,
-      'label': label, // 라벨 추가
+      'label': label,
     };
 
     try {
@@ -142,9 +195,10 @@ class _CalendarPageState extends State<CalendarPage> {
     }
   }
 
+  // 할 일 수정
   Future<void> _editTask(String taskId, String currentTitle, String currentLabel) async {
     final TextEditingController _taskController = TextEditingController(text: currentTitle);
-    String selectedLabel = currentLabel; // 현재 선택된 라벨로 초기화
+    String selectedLabel = currentLabel;
 
     await showDialog(
       context: context,
@@ -160,10 +214,10 @@ class _CalendarPageState extends State<CalendarPage> {
                   decoration: const InputDecoration(labelText: '할 일 제목 입력'),
                 ),
                 DropdownButton<String>(
-                  value: selectedLabel,  // 선택된 라벨을 value로 설정
+                  value: selectedLabel,
                   onChanged: (String? newValue) {
                     setState(() {
-                      selectedLabel = newValue!;  // 선택된 라벨을 갱신
+                      selectedLabel = newValue!;
                     });
                   },
                   items: _labels.map<DropdownMenuItem<String>>((label) {
@@ -225,13 +279,62 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
+  // 할 일 삭제
+  Future<void> _modifyTask(String taskId, int pointsChange, {bool deleteTask = false}) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
 
+    try {
+      final userTasks = FirebaseFirestore.instance
+          .collection('tasks')
+          .doc(user.uid)
+          .collection('user_tasks');
 
-  @override
-  void initState() {
-    super.initState();
-    _selectedDay = _focusedDay;
-    _fetchTasksForSelectedDay();
+      if (deleteTask) {
+        await userTasks.doc(taskId).delete();
+      } else {
+        await userTasks.doc(taskId).update({'completed': true});
+      }
+
+      // 할 일 리스트 갱신
+      await _fetchTasksForSelectedDay();
+
+      setState(() {
+        if (deleteTask) {
+          _tasks.removeWhere((task) => task['id'] == taskId);
+        } else {
+          _tasks = _tasks.where((task) => task['id'] != taskId).toList();
+        }
+      });
+
+      // 포인트 업데이트
+      await _updateUserPoints(pointsChange);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(deleteTask ? '작업이 삭제되었습니다.' : '작업이 완료되었습니다.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(deleteTask ? '삭제 실패: $e' : '작업 완료 실패: $e')),
+      );
+    }
+  }
+
+  Future<void> _updateUserPoints(int pointsChange) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final snapshot = await transaction.get(userDoc);
+      if (!snapshot.exists) return;
+
+      final currentPoints = snapshot['points'] ?? 0;
+      transaction.update(userDoc, {
+        'points': currentPoints + pointsChange,
+      });
+    });
   }
 
   @override
@@ -287,10 +390,10 @@ class _CalendarPageState extends State<CalendarPage> {
                               decoration: const InputDecoration(labelText: '할 일 입력'),
                             ),
                             DropdownButton<String>(
-                              value: selectedLabel,  // 선택된 라벨을 value로 설정
+                              value: selectedLabel,
                               onChanged: (String? newValue) {
                                 setState(() {
-                                  selectedLabel = newValue!;  // 선택된 라벨을 갱신
+                                  selectedLabel = newValue!;
                                 });
                               },
                               items: _labels.map<DropdownMenuItem<String>>((label) {
@@ -320,7 +423,7 @@ class _CalendarPageState extends State<CalendarPage> {
                           TextButton(
                             onPressed: () async {
                               if (taskTitle.isNotEmpty) {
-                                await _addTask(taskTitle, selectedLabel);  // 선택된 라벨과 함께 할 일 추가
+                                await _addTask(taskTitle, selectedLabel);
                               }
                               Navigator.of(context).pop();
                             },
@@ -334,7 +437,7 @@ class _CalendarPageState extends State<CalendarPage> {
               );
             },
             style: ElevatedButton.styleFrom(
-              minimumSize: Size(200, 50),
+              minimumSize: const Size(200, 50),
               padding: EdgeInsets.zero,
             ),
             child: const Text('할 일 추가', style: TextStyle(fontSize: 20)),
@@ -345,7 +448,6 @@ class _CalendarPageState extends State<CalendarPage> {
               itemBuilder: (context, index) {
                 final task = _tasks[index];
                 return ListTile(
-
                   leading: Container(
                     width: 10,
                     height: 40,
@@ -358,6 +460,10 @@ class _CalendarPageState extends State<CalendarPage> {
                         onPressed: () => _modifyTask(task['id'], 10, deleteTask: false),
                       ),
                       Expanded(child: Text(task['title'])),
+                      IconButton(
+                        icon: const Icon(Icons.access_alarm, color: Colors.blue),  // 종모양 아이콘
+                        onPressed: () => _setReminder(task),  // 알림 설정 버튼 클릭 시
+                      ),
                     ],
                   ),
                   trailing: Row(
@@ -365,7 +471,6 @@ class _CalendarPageState extends State<CalendarPage> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.edit, color: Colors.blue),
-
                         onPressed: () => _editTask(task['id'], task['title'], task['label']),
                       ),
                       IconButton(
