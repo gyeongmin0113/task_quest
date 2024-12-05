@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -88,7 +87,7 @@ class _LoginPageState extends State<LoginPage> {
                   const Text("이메일", style: TextStyle(fontSize: 20)),
                   const SizedBox(width: 38),
                   SizedBox(
-                    width: 300,
+                    width: 280,
                     child: TextField(
                       controller: _emailController,
                       decoration: const InputDecoration(
@@ -106,7 +105,7 @@ class _LoginPageState extends State<LoginPage> {
                   const Text("비밀번호", style: TextStyle(fontSize: 20)),
                   const SizedBox(width: 20),
                   SizedBox(
-                    width: 300,
+                    width: 280,
                     child: TextField(
                       controller: _passwordController,
                       obscureText: true,

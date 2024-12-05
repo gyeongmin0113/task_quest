@@ -93,7 +93,7 @@ class _SignupPageState extends State<SignupPage> {
         } else {
           print("here log 1");
           // Firebase에 Authentication으로 사용자 등록
-            UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+          UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
             email: email,
             password: password,
           );
@@ -146,12 +146,12 @@ class _SignupPageState extends State<SignupPage> {
               "회원가입하기",
               style: TextStyle(fontSize: 30.0),
             ),
-            SizedBox(height: 40),
+            SizedBox(height: 30),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text("이름", style: TextStyle(fontSize: 20)),
-                SizedBox(width: 180),
+                // Text("이름", style: TextStyle(fontSize: 20)),
+                // SizedBox(width: 180),
                 SizedBox(
                   width: 300,
                   child: TextField(
@@ -164,12 +164,12 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 15),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text("이메일", style: TextStyle(fontSize: 20)),
-                SizedBox(width: 161),
+                // Text("이메일", style: TextStyle(fontSize: 20)),
+                // SizedBox(width: 161),
                 SizedBox(
                   width: 300,
                   child: TextField(
@@ -182,12 +182,12 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 15),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text("비밀번호", style: TextStyle(fontSize: 20)),
-                SizedBox(width: 142),
+                // Text("비밀번호", style: TextStyle(fontSize: 20)),
+                // SizedBox(width: 142),
                 SizedBox(
                   width: 300,
                   child: TextField(
@@ -201,12 +201,12 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 15),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text("비밀번호 다시 입력하기", style: TextStyle(fontSize: 20)),
-                SizedBox(width: 20),
+                // Text("비밀번호 다시 입력하기", style: TextStyle(fontSize: 20)),
+                // SizedBox(width: 20),
                 SizedBox(
                   width: 300,
                   child: TextField(
@@ -220,7 +220,7 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ],
             ),
-            SizedBox(height: 30),
+            SizedBox(height: 20),
             ElevatedButton(
               onPressed: _createUser,
               child: const Text("가입 완료하기"),
