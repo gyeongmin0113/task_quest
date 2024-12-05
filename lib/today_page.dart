@@ -172,6 +172,7 @@ class _TodayPageState extends State<TodayPage> {
       await _fetchTodayTasks();
 
       ScaffoldMessenger.of(context).showSnackBar(
+
         const SnackBar(content: Text('새로운 할 일이 추가되었습니다.')),
       );
     } catch (e) {
@@ -191,7 +192,9 @@ class _TodayPageState extends State<TodayPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+
         title: const Text('오늘의 할 일'),
+
         backgroundColor: Colors.red,
       ),
       body: Column(
@@ -231,11 +234,13 @@ class _TodayPageState extends State<TodayPage> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 50.0), // 좌우 여백을 16으로 설정
+
+            padding: const EdgeInsets.symmetric(horizontal: 50.0),
             child: TextField(
               controller: _taskController,
               decoration: InputDecoration(
                 labelText: '새로운 할 일',
+
                 border: OutlineInputBorder(),
               ),
               onSubmitted: (_) => _addNewTask(),
@@ -244,7 +249,9 @@ class _TodayPageState extends State<TodayPage> {
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: _addNewTask,
+
             child: const Text('할 일 추가하기', style: TextStyle(fontSize: 20)),
+
             style: ElevatedButton.styleFrom(
               minimumSize: Size(200, 50),
               padding: EdgeInsets.zero,

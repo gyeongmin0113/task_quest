@@ -338,14 +338,14 @@ class _CalendarPageState extends State<CalendarPage> {
               padding: EdgeInsets.zero,
             ),
             child: const Text('할 일 추가', style: TextStyle(fontSize: 20)),
-          )
-          ,
+          ),
           Expanded(
             child: ListView.builder(
               itemCount: _tasks.length,
               itemBuilder: (context, index) {
                 final task = _tasks[index];
                 return ListTile(
+
                   leading: Container(
                     width: 10,
                     height: 40,
@@ -365,6 +365,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.edit, color: Colors.blue),
+
                         onPressed: () => _editTask(task['id'], task['title'], task['label']),
                       ),
                       IconButton(
