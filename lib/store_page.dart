@@ -14,7 +14,8 @@ class StorePage extends StatefulWidget {
 
 class _StorePageState extends State<StorePage> {
   int points = 0; // 보유 포인트 (Firebase에서 불러올 것)
-  String profileImageUrl = "https://firebasestorage.googleapis.com/v0/b/taskquest-e1b8b.firebasestorage.app/o/profile_images%2Fdefault.png?alt=media&token=1800c892-73f0-459b-b81a-f4fde82262c1"; // Firebase에서 가져올 이미지
+  String profileImageUrl =
+      "https://firebasestorage.googleapis.com/v0/b/taskquest-e1b8b.firebasestorage.app/o/profile_images%2Fdefault.png?alt=media&token=1800c892-73f0-459b-b81a-f4fde82262c1"; // Firebase에서 가져올 이미지
   List<String> purchasedItems = []; // 구매한 아이템 목록
 
   @override
@@ -31,8 +32,9 @@ class _StorePageState extends State<StorePage> {
     if (userDoc.exists) {
       setState(() {
         points = userDoc['points'] ?? 0;
-        if(profileImageUrl != null && profileImageUrl.isNotEmpty)
+        if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
           profileImageUrl = userDoc['profileImageUrl'] ?? profileImageUrl;
+        }
         purchasedItems = List<String>.from(userDoc['purchased_items'] ?? []);
       });
     }
@@ -62,23 +64,44 @@ class _StorePageState extends State<StorePage> {
         'purchased_items': FieldValue.arrayUnion([itemId]),
       });
 
-      // UI 상태 갱신
       setState(() {
-        purchasedItems.add(itemId); // 구매 항목 추가
+        purchasedItems.add(itemId);
+        points -= price;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('구매 완료!')),
       );
-
-      // 테마 아이템 적용
-      if (type == 'theme') {
-        Provider.of<ThemeProvider>(context, listen: false).setTheme(itemId);
-      }
-
-      setState(() {
-        points -= price;
-      });
     });
+  }
+
+  Future<void> _applyItem(String itemId, String type, String? imageUrl) async {
+    if (type == 'theme') {
+      // 아이템 ID를 사용하여 테마를 적용
+      Provider.of<ThemeProvider>(context, listen: false).setTheme(itemId);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('변경사항이 적용되었습니다!')),
+      );
+    } else if (type == 'illust') {
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) return;
+
+        final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
+        await userDoc.update({'profileImageUrl': imageUrl});
+
+        setState(() {
+          profileImageUrl = imageUrl!;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('프로필 이미지가 적용되었습니다!')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('프로필 이미지 적용 실패: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -165,7 +188,7 @@ class _StorePageState extends State<StorePage> {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('store_items')
-          .where('type', isEqualTo: 'illust') // 스티커에서 일러스트로 변경됨
+          .where('type', isEqualTo: 'illust')
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -187,48 +210,51 @@ class _StorePageState extends State<StorePage> {
             final itemPrice = item['price'];
             final imageUrl = item['imageUrl'];
 
-            return _buildItemTile(itemName, itemPrice, item.id, 'illust',  imageUrl: imageUrl);
+            return _buildItemTile(itemName, itemPrice, item.id, 'illust', imageUrl: imageUrl);
           },
         );
       },
     );
   }
 
-  Widget _buildItemTile(String itemName, int price, String itemId,String type, {String? imageUrl, Color? color}  ) {
-
-    // 구매 여부 확인
+  Widget _buildItemTile(String itemName, int price, String itemId, String type,
+      {String? imageUrl, Color? color}) {
     final isPurchased = purchasedItems.contains(itemId);
+
+    // 테마 적용 상태 확인 (아이템 ID와 적용된 테마를 비교)
+    final isApplied = type == 'theme'
+        ? Provider.of<ThemeProvider>(context, listen: false).currentThemeId == itemId
+        : profileImageUrl == imageUrl;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
           children: [
-            // 이미지 또는 기본 아이콘 표시
             if (color != null)
               Container(
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
                   color: color,
-                  shape: BoxShape.circle, // 원형
+                  shape: BoxShape.circle,
                 ),
               )
-            else imageUrl != null && imageUrl.isNotEmpty
-                ? ClipRRect(
-              borderRadius: BorderRadius.circular(8.0), // 이미지 모서리 둥글게 처리
-              child: Image.network(
-                imageUrl,
-                width: 40,
-                height: 40,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Icon(
-                      Icons.image_not_supported, size: 40, color: Colors.grey);
-                },
-              ),
-            )
-                : const Icon(Icons.widgets, size: 40, color: Colors.blueAccent),
+            else if (imageUrl != null && imageUrl.isNotEmpty)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8.0),
+                child: Image.network(
+                  imageUrl,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(Icons.image_not_supported, size: 40, color: Colors.grey);
+                  },
+                ),
+              )
+            else
+              const Icon(Icons.widgets, size: 40, color: Colors.blueAccent),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,67 +266,41 @@ class _StorePageState extends State<StorePage> {
           ],
         ),
         ElevatedButton(
-       style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-          onPressed: () async {
-         if (isPurchased) {
-           // 이미 구매한 경우 테마 적용
-           if (type == 'theme') {
-             Provider.of<ThemeProvider>(context, listen: false).setTheme(itemId);
-             ScaffoldMessenger.of(context).showSnackBar(
-               const SnackBar(content: Text('프로필이 적용되었습니다!')),
-             );
-           }
-           else if (type == 'illust') {
-             try {
-               final user = FirebaseAuth.instance.currentUser;
-               if (user == null) return;
-
-               // Firestore에서 사용자 프로필 이미지 업데이트
-               final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
-               await userDoc.update({'profileImageUrl': imageUrl});
-
-               setState(() {
-                 // UI 상태 갱신
-                 profileImageUrl = imageUrl!;
-               });
-
-               ScaffoldMessenger.of(context).showSnackBar(
-                 const SnackBar(content: Text('프로필 이미지가 적용되었습니다!')),
-               );
-             } catch (e) {
-               ScaffoldMessenger.of(context).showSnackBar(
-                 SnackBar(content: Text('프로필 이미지 적용 실패: $e')),
-               );
-             }
-           }
-
-         } else {
-      // 구매 확인 다이얼로그
-      final result = await showDialog(
-        context: context,
-        builder: (context) =>
-            AlertDialog(
-              title: Text('$itemName 구매'),
-              content: const Text('이 아이템을 구매하시겠습니까?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('취소'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isPurchased
+                ? (isApplied ? Colors.blue[100] : Colors.blue[200]) // 적용하기 버튼 색상
+                : Colors.blueAccent, // 구매하기 버튼 색상
+            foregroundColor: Colors.black,
+          ),
+          onPressed: isApplied
+              ? null  // 이미 적용된 경우 버튼 비활성화
+              : () async {
+            if (isPurchased) {
+              final applyResult = await showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text('$itemName 적용'),
+                  content: const Text('이 아이템을 적용하시겠습니까?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('취소'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text('확인'),
+                    ),
+                  ],
                 ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('구매'),
-                ),
-              ],
-            ),
-      );
-
-      if (result == true) {
-        await _purchaseItem(itemId, price, type);
-      }
-    }
+              );
+              if (applyResult) {
+                await _applyItem(itemId, type, imageUrl);
+              }
+            } else {
+              await _purchaseItem(itemId, price, type);
+            }
           },
-          child: Text(isPurchased ? '적용하기' : '구매하기'),
+          child: Text(isPurchased ? (isApplied ? '적용됨' : '적용하기') : '구매하기'),
         ),
       ],
     );

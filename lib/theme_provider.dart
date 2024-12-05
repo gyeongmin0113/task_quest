@@ -8,9 +8,11 @@ String GREEN_theme = 'hyu0HmZXawutFuToNuTc';
 class ThemeProvider extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.light; // 초기 테마 모드
   ThemeData _themeData = ThemeData.light(); // 초기 테마 데이터
+  String _currentThemeId = ''; // 현재 적용된 테마의 ID
 
   ThemeMode get themeMode => _themeMode;
   ThemeData get themeData => _themeData;
+  String get currentThemeId => _currentThemeId; // 현재 테마 ID를 반환하는 getter
 
   void setThemeMode(ThemeMode mode) {
     _themeMode = mode;
@@ -23,7 +25,6 @@ class ThemeProvider extends ChangeNotifier {
   }  // 기본 라이트/다크테마
 
   void setTheme(String theme) {
-
     if (theme == DEEP_theme) {
       // 딥다크 테마 정의
       _themeData = ThemeData(
@@ -37,9 +38,10 @@ class ThemeProvider extends ChangeNotifier {
           bodyLarge: TextStyle(color: Colors.white),
         ),
       );
-    } else if (theme == BLUE_theme){
+      _currentThemeId = DEEP_theme; // 테마 ID 저장
+    } else if (theme == BLUE_theme) {
       print("블루테마적용");
-      _themeData =ThemeData(
+      _themeData = ThemeData(
         brightness: Brightness.light,
         primaryColor: Colors.blue,
         scaffoldBackgroundColor: Colors.lightBlue[50],
@@ -50,7 +52,8 @@ class ThemeProvider extends ChangeNotifier {
           bodyLarge: TextStyle(color: Colors.black),
         ),
       );
-    }else if (theme == GREEN_theme) {
+      _currentThemeId = BLUE_theme; // 테마 ID 저장
+    } else if (theme == GREEN_theme) {
       print("그린테마적용");
       _themeData = ThemeData(
         brightness: Brightness.light,
@@ -63,6 +66,7 @@ class ThemeProvider extends ChangeNotifier {
           bodyLarge: TextStyle(color: Colors.black),
         ),
       );
+      _currentThemeId = GREEN_theme; // 테마 ID 저장
     } else if (theme == PINK_theme) {
       print("핑크테마적용");
       _themeData = ThemeData(
@@ -76,6 +80,7 @@ class ThemeProvider extends ChangeNotifier {
           bodyLarge: TextStyle(color: Colors.black),
         ),
       );
+      _currentThemeId = PINK_theme; // 테마 ID 저장
     } else {
       // 기본 라이트 테마
       _themeData = ThemeData(
@@ -88,7 +93,9 @@ class ThemeProvider extends ChangeNotifier {
         textTheme: TextTheme(
           bodyLarge: TextStyle(color: Colors.black),
         ),
-      );}
+      );
+      _currentThemeId = ''; // 기본 테마는 ID를 비워둠
+    }
     notifyListeners();
   }
 }
