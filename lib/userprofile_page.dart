@@ -1,5 +1,3 @@
-
-
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +17,7 @@ class UserProfilePage extends StatefulWidget {
 
 class _UserProfilePageState extends State<UserProfilePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  String? _profileImageUrl;
+  String? _profileImageUrl;  // 프로필 이미지 URL을 nullable로 설정
 
   @override
   void initState() {
@@ -27,19 +25,22 @@ class _UserProfilePageState extends State<UserProfilePage> {
     _loadUserProfile();
   }
 
+  // 사용자 프로필을 Firestore에서 불러오는 함수
   Future<void> _loadUserProfile() async {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    final userDoc =
-    await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-    setState(() {
-// final rawUrl = userDoc['profileImageUrl'] ?? '';
-// _profileImageUrl = rawUrl.isNotEmpty ? '$rawUrl&alt=media' : '';
-      _profileImageUrl = userDoc['profileImageUrl'] ?? '';
-    });
+    try {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      setState(() {
+        _profileImageUrl = userDoc['profileImageUrl'] ?? '기본 URL';  // 기본 이미지 URL로 설정
+      });
+    } catch (e) {
+      debugPrint('Error loading user profile: $e');
+    }
   }
 
+  // 프로필 사진을 갤러리에서 선택하고 Firebase에 업로드하는 함수
   Future<void> _updateProfileImage() async {
     final user = _auth.currentUser;
     if (user == null) return;
@@ -49,8 +50,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
     if (pickedImage == null) return;
 
-    final storageRef =
-    FirebaseStorage.instance.ref().child('profile_images/${user.uid}.jpg');
+    final storageRef = FirebaseStorage.instance.ref().child('profile_images/${user.uid}.jpg');
 
     try {
       if (kIsWeb) {
@@ -62,12 +62,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
       }
 
       final rawUrl = await storageRef.getDownloadURL();
-// final imageUrl = '$rawUrl&alt=media';
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .update({'profileImageUrl': rawUrl});
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({'profileImageUrl': rawUrl});
 
       setState(() {
         _profileImageUrl = rawUrl;
@@ -83,21 +78,26 @@ class _UserProfilePageState extends State<UserProfilePage> {
     }
   }
 
+  // 사용자의 통계 (포인트 등)를 가져오는 함수
   Future<Map<String, dynamic>> getUserStats() async {
     final user = _auth.currentUser;
     if (user == null) {
       return {'points': 0, 'completed_tasks': 0, 'total_tasks': 0};
     }
 
-    final userDoc =
-    await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-    if (!userDoc.exists) {
+    try {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (!userDoc.exists) {
+        return {'points': 0, 'completed_tasks': 0, 'total_tasks': 0};
+      }
+
+      return {
+        'points': userDoc['points'] ?? 0,
+      };
+    } catch (e) {
+      debugPrint('Error loading user stats: $e');
       return {'points': 0, 'completed_tasks': 0, 'total_tasks': 0};
     }
-
-    return {
-      'points': userDoc['points'] ?? 0,
-    };
   }
 
   @override
@@ -138,9 +138,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-// 프로필 사진
-                  if (_profileImageUrl != null &&
-                      _profileImageUrl!.isNotEmpty)
+                  // 프로필 사진
+                  if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty)
                     CircleAvatar(
                       radius: 80,
                       backgroundImage: NetworkImage(_profileImageUrl!),
@@ -151,7 +150,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       child: Icon(Icons.person, size: 50),
                     ),
                   const SizedBox(height: 16),
-// 프로필 사진 변경 버튼
+                  // 프로필 사진 변경 버튼
                   TextButton(
                     onPressed: _updateProfileImage,
                     child: const Text(
@@ -160,7 +159,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     ),
                   ),
                   const SizedBox(height: 32),
-// 현재 포인트
+                  // 현재 포인트
                   Text(
                     '💰 총 포인트: ${stats['points']}',
                     style: const TextStyle(
@@ -170,13 +169,13 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-// 이메일
+                  // 이메일
                   Text(
                     '이메일: ${user.email}',
                     style: const TextStyle(fontSize: 18),
                   ),
                   const SizedBox(height: 32),
-// 포인트 상점 버튼
+                  // 포인트 상점 버튼
                   ElevatedButton(
                     onPressed: () {
                       Navigator.pushNamed(context, '/store').then((_) {
