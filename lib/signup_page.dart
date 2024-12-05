@@ -2,6 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+
+String profile_default = 'https://dummyimage.com/600x400/000/fff';
+
 // 에러 메시지 다이얼로그 표시
 void _showErrorDialog(BuildContext context, String title, String message) {
   showDialog(
@@ -36,7 +39,7 @@ class _SignupPageState extends State<SignupPage> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _passwordConfirmController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
-  String _errorMessage = ''; // 에러 메시지를 저장할 변수
+  //String _errorMessage = ''; // 에러 메시지를 저장할 변수
 
   // 회원가입 처리 함수
   Future<void> _createUser() async {
@@ -88,18 +91,25 @@ class _SignupPageState extends State<SignupPage> {
         if (querySnapshot.docs.isNotEmpty) {
           _showErrorDialog(context, "오류!", "이미 사용 중인 이메일입니다.");
         } else {
-          // Firebase에 사용자 등록
-          await _auth.createUserWithEmailAndPassword(
+          print("here log 1");
+          // Firebase에 Authentication으로 사용자 등록
+          UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
             email: email,
             password: password,
           );
 
+          // Firebase UID 가져오기
+          String uid = userCredential.user!.uid;
+          print("HERE 1: UID: $uid");
+
           // Firestore에 사용자 정보 추가
-          await FirebaseFirestore.instance.collection('users').add({
+          await FirebaseFirestore.instance.collection('users').doc(uid).set({
             'name': name,
             'email': email,
             'password': password,  // 실제 서비스에서는 비밀번호를 해시화해야 합니다.
-          });
+            'profileImageUrl': profile_default, // 기본 프로필 설정
+            'points' : 0 // 기본 포인트 필드
+          });;print("log: Firestore에 사용자 정보 저장 완료");
 
           // 회원가입 성공 후 /home 화면으로 이동
           Navigator.pushReplacementNamed(context, '/home');
@@ -154,7 +164,7 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ],
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 15),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -172,7 +182,7 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ],
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 15),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -191,7 +201,7 @@ class _SignupPageState extends State<SignupPage> {
                 ),
               ],
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 15),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

@@ -19,6 +19,13 @@ class _CalendarPageState extends State<CalendarPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   List<Map<String, dynamic>> _tasks = [];
 
+  // 라벨 선택을 위한 리스트
+  final List<Map<String, dynamic>> _labels = [
+    {'label': '개인', 'color': Colors.green},
+    {'label': '업무', 'color': Colors.blue},
+    {'label': '중요', 'color': Colors.red},
+  ];
+
   Future<void> _fetchTasksForSelectedDay() async {
     if (_selectedDay == null) return;
 
@@ -34,7 +41,7 @@ class _CalendarPageState extends State<CalendarPage> {
         .collection('user_tasks')
         .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
         .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-        .where('completed', isEqualTo: false) // 완료되지 않은 작업만 가져오기
+        .where('completed', isEqualTo: false) // 완료되지 않은 할 일만 가져오기
         .get();
 
     setState(() {
@@ -93,16 +100,16 @@ class _CalendarPageState extends State<CalendarPage> {
       await _updateUserPoints(pointsChange);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(deleteTask ? '작업이 삭제되었습니다.' : '작업이 완료되었습니다.')),
+        SnackBar(content: Text(deleteTask ? '할 일이 삭제되었습니다.' : '할 일이 완료되었습니다.')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(deleteTask ? '삭제 실패: $e' : '작업 완료 실패: $e')),
+        SnackBar(content: Text(deleteTask ? '삭제 실패: $e' : '할 일 완료 실패: $e')),
       );
     }
   }
 
-  Future<void> _addTask(String title) async {
+  Future<void> _addTask(String title, String label) async {
     if (_selectedDay == null) return;
 
     final user = _auth.currentUser;
@@ -113,6 +120,7 @@ class _CalendarPageState extends State<CalendarPage> {
       'date': Timestamp.fromDate(_selectedDay!),
       'created_at': Timestamp.now(),
       'completed': false,
+      'label': label, // 라벨 추가
     };
 
     try {
@@ -134,54 +142,90 @@ class _CalendarPageState extends State<CalendarPage> {
     }
   }
 
-  Future<void> _editTask(String taskId, String currentTitle) async {
+  Future<void> _editTask(String taskId, String currentTitle, String currentLabel) async {
     final TextEditingController _taskController = TextEditingController(text: currentTitle);
+    String selectedLabel = currentLabel; // 현재 선택된 라벨로 초기화
 
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('작업 수정'),
-        content: TextField(
-          controller: _taskController,
-          decoration: const InputDecoration(labelText: '작업 제목 입력'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final newTitle = _taskController.text.trim();
-              if (newTitle.isNotEmpty) {
-                try {
-                  final user = _auth.currentUser;
-                  if (user == null) return;
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('할 일 수정'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _taskController,
+                  decoration: const InputDecoration(labelText: '할 일 제목 입력'),
+                ),
+                DropdownButton<String>(
+                  value: selectedLabel,  // 선택된 라벨을 value로 설정
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      selectedLabel = newValue!;  // 선택된 라벨을 갱신
+                    });
+                  },
+                  items: _labels.map<DropdownMenuItem<String>>((label) {
+                    return DropdownMenuItem<String>(
+                      value: label['label'],
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 20,
+                            height: 20,
+                            color: label['color'],
+                          ),
+                          const SizedBox(width: 10),
+                          Text(label['label']),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final newTitle = _taskController.text.trim();
+                  if (newTitle.isNotEmpty) {
+                    try {
+                      final user = _auth.currentUser;
+                      if (user == null) return;
 
-                  await FirebaseFirestore.instance
-                      .collection('tasks')
-                      .doc(user.uid)
-                      .collection('user_tasks')
-                      .doc(taskId)
-                      .update({'title': newTitle});
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('작업이 수정되었습니다.')),
-                  );
-                  await _fetchTasksForSelectedDay();
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('수정 실패: $e')),
-                  );
-                }
-              }
-              Navigator.of(context).pop();
-            },
-            child: const Text('저장'),
-          ),
-        ],
+                      await FirebaseFirestore.instance
+                          .collection('tasks')
+                          .doc(user.uid)
+                          .collection('user_tasks')
+                          .doc(taskId)
+                          .update({'title': newTitle, 'label': selectedLabel});
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('할 일이 수정되었습니다.')),
+                      );
+                      await _fetchTasksForSelectedDay();
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('수정 실패: $e')),
+                      );
+                    }
+                  }
+                  Navigator.of(context).pop();
+                },
+                child: const Text('저장'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
+
+
 
   @override
   void initState() {
@@ -227,29 +271,64 @@ class _CalendarPageState extends State<CalendarPage> {
                 context: context,
                 builder: (context) {
                   String taskTitle = '';
-                  return AlertDialog(
-                    title: const Text('할 일 추가'),
-                    content: TextField(
-                      onChanged: (value) {
-                        taskTitle = value;
-                      },
-                      decoration: const InputDecoration(labelText: '할 일 입력'),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('취소'),
-                      ),
-                      TextButton(
-                        onPressed: () async {
-                          if (taskTitle.isNotEmpty) {
-                            await _addTask(taskTitle);
-                          }
-                          Navigator.of(context).pop();
-                        },
-                        child: const Text('추가'),
-                      ),
-                    ],
+                  String selectedLabel = _labels[0]['label']; // 기본 라벨 '개인'으로 설정
+
+                  return StatefulBuilder(
+                    builder: (context, setState) {
+                      return AlertDialog(
+                        title: const Text('할 일 추가'),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextField(
+                              onChanged: (value) {
+                                taskTitle = value;
+                              },
+                              decoration: const InputDecoration(labelText: '할 일 입력'),
+                            ),
+                            DropdownButton<String>(
+                              value: selectedLabel,  // 선택된 라벨을 value로 설정
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  selectedLabel = newValue!;  // 선택된 라벨을 갱신
+                                });
+                              },
+                              items: _labels.map<DropdownMenuItem<String>>((label) {
+                                return DropdownMenuItem<String>(
+                                  value: label['label'],
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 20,
+                                        height: 20,
+                                        color: label['color'],
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(label['label']),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text('취소'),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              if (taskTitle.isNotEmpty) {
+                                await _addTask(taskTitle, selectedLabel);  // 선택된 라벨과 함께 할 일 추가
+                              }
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text('추가'),
+                          ),
+                        ],
+                      );
+                    },
                   );
                 },
               );
@@ -259,13 +338,19 @@ class _CalendarPageState extends State<CalendarPage> {
               padding: EdgeInsets.zero,
             ),
             child: const Text('할 일 추가', style: TextStyle(fontSize: 20)),
-          ),
+          )
+          ,
           Expanded(
             child: ListView.builder(
               itemCount: _tasks.length,
               itemBuilder: (context, index) {
                 final task = _tasks[index];
                 return ListTile(
+                  leading: Container(
+                    width: 10,
+                    height: 40,
+                    color: _labels.firstWhere((label) => label['label'] == task['label'])['color'],
+                  ),
                   title: Row(
                     children: [
                       IconButton(
@@ -280,7 +365,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () => _editTask(task['id'], task['title']),
+                        onPressed: () => _editTask(task['id'], task['title'], task['label']),
                       ),
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),

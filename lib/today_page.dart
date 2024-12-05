@@ -90,7 +90,7 @@ class _TodayPageState extends State<TodayPage> {
       await _updateUserPoints(pointsChange);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(deleteTask ? '작업이 삭제되었습니다.' : '작업이 완료되었습니다.')),
+        SnackBar(content: Text(deleteTask ? '할 일이 삭제되었습니다.' : '할 일이 완료되었습니다.')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -105,10 +105,10 @@ class _TodayPageState extends State<TodayPage> {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('작업 수정'),
+        title: const Text('할 일 수정'),
         content: TextField(
           controller: _taskController,
-          decoration: const InputDecoration(labelText: '작업 제목 입력'),
+          decoration: const InputDecoration(labelText: '할 일 제목 입력'),
         ),
         actions: [
           TextButton(
@@ -131,7 +131,7 @@ class _TodayPageState extends State<TodayPage> {
                       .update({'title': newTitle});
 
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('작업이 수정되었습니다.')),
+                    const SnackBar(content: Text('할 일이 수정되었습니다.')),
                   );
                   await _fetchTodayTasks();
                 } catch (e) {
@@ -172,11 +172,11 @@ class _TodayPageState extends State<TodayPage> {
       await _fetchTodayTasks();
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('새로운 일정이 추가되었습니다.')),
+        const SnackBar(content: Text('새로운 할 일이 추가되었습니다.')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('일정 추가 실패: $e')),
+        SnackBar(content: Text('할 일 추가 실패: $e')),
       );
     }
   }
@@ -191,7 +191,7 @@ class _TodayPageState extends State<TodayPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('오늘의 일정'),
+        title: const Text('오늘의 할 일'),
         backgroundColor: Colors.red,
       ),
       body: Column(
@@ -235,7 +235,7 @@ class _TodayPageState extends State<TodayPage> {
             child: TextField(
               controller: _taskController,
               decoration: InputDecoration(
-                labelText: '새로운 일정',
+                labelText: '새로운 할 일',
                 border: OutlineInputBorder(),
               ),
               onSubmitted: (_) => _addNewTask(),
@@ -244,7 +244,7 @@ class _TodayPageState extends State<TodayPage> {
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: _addNewTask,
-            child: const Text('일정 추가하기', style: TextStyle(fontSize: 20)),
+            child: const Text('할 일 추가하기', style: TextStyle(fontSize: 20)),
             style: ElevatedButton.styleFrom(
               minimumSize: Size(200, 50),
               padding: EdgeInsets.zero,
