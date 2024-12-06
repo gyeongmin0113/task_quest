@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 
-String profile_default = 'https://dummyimage.com/600x400/000/fff';
+String profile_default = 'https://firebasestorage.googleapis.com/v0/b/taskquest-e1b8b.firebasestorage.app/o/profile_images%2Fdefault.png?alt=media&token=1800c892-73f0-459b-b81a-f4fde82262c1' ;
 
 // 에러 메시지 다이얼로그 표시
 void _showErrorDialog(BuildContext context, String title, String message) {
