@@ -1,4 +1,5 @@
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
@@ -21,8 +22,10 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await _initializeNotifications();
-  await _requestExactAlarmPermission();  // 권한 요청
+  if (!kIsWeb) {
+    await _initializeNotifications();
+    await _requestExactAlarmPermission(); // 권한 요청
+  } // 권한요청이 웹이 아닐때에만 실행.
   runApp(const TaskQuestApp());
 }
 
