@@ -87,7 +87,7 @@ class _CalendarPageState extends State<CalendarPage> {
         // 알림 트리거
         await flutterLocalNotificationsPlugin.show(
           notificationId.hashCode,
-          '작업 알림',
+          '할 일 알림',
           title,
           notificationDetails,
           payload: taskId,

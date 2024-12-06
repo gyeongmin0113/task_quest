@@ -229,38 +229,6 @@ class _TodayPageState extends State<TodayPage> {
     }
   }
 
-  Future<void> _addNewTask() async {
-    final taskTitle = _taskController.text.trim();
-    if (taskTitle.isEmpty) return;
-
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    final today = DateTime.now();
-    try {
-      await FirebaseFirestore.instance
-          .collection('tasks')
-          .doc(user.uid)
-          .collection('user_tasks')
-          .add({
-        'title': taskTitle,
-        'date': Timestamp.fromDate(today),
-        'completed': false,
-      });
-
-      _taskController.clear(); // 입력 필드 비우기
-      await _fetchTodayTasks();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('새로운 일정이 추가되었습니다.')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('일정 추가 실패: $e')),
-      );
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -310,27 +278,6 @@ class _TodayPageState extends State<TodayPage> {
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 50.0),
-            child: TextField(
-              controller: _taskController,
-              decoration: InputDecoration(
-                labelText: '새로운 할 일',
-                border: OutlineInputBorder(),
-              ),
-              onSubmitted: (_) => _addNewTask(),
-            ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _addNewTask,
-            child: const Text('할 일 추가하기', style: TextStyle(fontSize: 20)),
-            style: ElevatedButton.styleFrom(
-              minimumSize: Size(200, 50),
-              padding: EdgeInsets.zero,
-            ),
-          ),
-          const SizedBox(height: 20),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
